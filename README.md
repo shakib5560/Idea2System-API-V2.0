@@ -68,6 +68,7 @@ The repository currently ships the **Core API** — the authenticated foundation
 - Encrypted storage of provider tokens
 - Redis-backed caching layer for authenticated reads
 - JWT blacklisting for logout and forced session revocation
+- User resource management (file upload, URL import, raw text — with pagination, filtering, and per-user ownership)
 - Request validation, CORS, Helmet, compression, rate limiting
 - Swagger / OpenAPI documentation
 
@@ -79,15 +80,15 @@ The repository currently ships the **Core API** — the authenticated foundation
 
 ## Tech stack
 
-| Layer | Choice |
-|---|---|
-| API | NestJS · TypeScript |
-| Database | PostgreSQL |
-| ORM | Prisma |
-| Cache & session store | Redis (Upstash) |
-| Auth | Passport · JWT · Google OAuth · GitHub OAuth |
-| Docs | Swagger / OpenAPI |
-| Package manager | pnpm |
+| Layer                 | Choice                                       |
+| --------------------- | -------------------------------------------- |
+| API                   | NestJS · TypeScript                          |
+| Database              | PostgreSQL                                   |
+| ORM                   | Prisma                                       |
+| Cache & session store | Redis (Upstash)                              |
+| Auth                  | Passport · JWT · Google OAuth · GitHub OAuth |
+| Docs                  | Swagger / OpenAPI                            |
+| Package manager       | pnpm                                         |
 
 <br>
 
@@ -98,6 +99,7 @@ The repository currently ships the **Core API** — the authenticated foundation
 ├── core-api/              NestJS backend application
 │   ├── prisma/             Prisma schema and migrations
 │   ├── src/auth/            Local and OAuth authentication, JWT strategy, token blacklist service
+│   ├── src/user-resource/   User resource management (file, URL, text — CRUD + pagination)
 │   ├── src/redis/           Redis client module (cache + blacklist)
 │   ├── src/common/          Shared services, including token encryption
 │   └── src/prisma/          Prisma module and service
@@ -163,10 +165,10 @@ REDIS_TLS=true
 
 Register these redirect URLs with each provider for local development:
 
-| Provider | Redirect URL |
-|---|---|
-| Google | `http://localhost:5000/api/v1.0/auth/google/callback` |
-| GitHub | `http://localhost:5000/api/v1.0/auth/github/callback` |
+| Provider | Redirect URL                                          |
+| -------- | ----------------------------------------------------- |
+| Google   | `http://localhost:5000/api/v1.0/auth/google/callback` |
+| GitHub   | `http://localhost:5000/api/v1.0/auth/github/callback` |
 
 **3 · Migrate**
 
@@ -187,19 +189,30 @@ Swagger (dev only) → `http://localhost:5000/api/v1.0/docs`
 
 ## Authentication endpoints
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `POST` | `/api/v1.0/auth/register` | Create an account with email and password |
-| `GET` | `/api/v1.0/auth/verify-email?token=...` | Verify a newly registered email address |
-| `POST` | `/api/v1.0/auth/resend-verification` | Request a new verification link |
-| `POST` | `/api/v1.0/auth/login` | Sign in with email and password |
-| `GET` | `/api/v1.0/auth/google` | Start Google sign-in |
-| `GET` | `/api/v1.0/auth/github` | Start GitHub sign-in |
-| `GET` | `/api/v1.0/auth/me` | Get the authenticated user profile (Redis-cached) |
-| `POST` | `/api/v1.0/auth/logout` | End the current session and blacklist the active token |
-| `POST` | `/api/v1.0/auth/logout-everywhere` | Revoke all active tokens for the authenticated user |
-| `POST` | `/api/v1.0/auth/change-password` | Change user password and revoke all active sessions |
-| `GET` | `/api/v1.0/health` | Report API and Redis connectivity status |
+| Method | Endpoint                                | Purpose                                                |
+| ------ | --------------------------------------- | ------------------------------------------------------ |
+| `POST` | `/api/v1.0/auth/register`               | Create an account with email and password              |
+| `GET`  | `/api/v1.0/auth/verify-email?token=...` | Verify a newly registered email address                |
+| `POST` | `/api/v1.0/auth/resend-verification`    | Request a new verification link                        |
+| `POST` | `/api/v1.0/auth/login`                  | Sign in with email and password                        |
+| `GET`  | `/api/v1.0/auth/google`                 | Start Google sign-in                                   |
+| `GET`  | `/api/v1.0/auth/github`                 | Start GitHub sign-in                                   |
+| `GET`  | `/api/v1.0/auth/me`                     | Get the authenticated user profile (Redis-cached)      |
+| `POST` | `/api/v1.0/auth/logout`                 | End the current session and blacklist the active token |
+| `POST` | `/api/v1.0/auth/logout-everywhere`      | Revoke all active tokens for the authenticated user    |
+| `POST` | `/api/v1.0/auth/change-password`        | Change user password and revoke all active sessions    |
+| `GET`  | `/api/v1.0/health`                      | Report API and Redis connectivity status               |
+
+## User Resource endpoints
+
+| Method   | Endpoint                          | Auth     | Purpose                                                               |
+| -------- | --------------------------------- | -------- | --------------------------------------------------------------------- |
+| `POST`   | `/api/v1.0/user-resources/upload` | Required | Upload a file resource (PDF, DOCX, TXT, CSV, JSON, image — max 10 MB) |
+| `POST`   | `/api/v1.0/user-resources/url`    | Required | Import external content from a URL                                    |
+| `POST`   | `/api/v1.0/user-resources/text`   | Public   | Create a resource from raw text (guests supported)                    |
+| `GET`    | `/api/v1.0/user-resources`        | Required | List resources owned by the current user (paginated, filterable)      |
+| `GET`    | `/api/v1.0/user-resources/:id`    | Required | Retrieve a single resource by ID                                      |
+| `DELETE` | `/api/v1.0/user-resources/:id`    | Required | Permanently delete a resource by ID                                   |
 
 <sub>Full OAuth configuration and endpoint list in the <a href="core-api/README.md">Core API README</a>.</sub>
 
@@ -221,14 +234,14 @@ Redis (Upstash) backs two responsibilities in the Core API:
 
 <sub>Run from <code>core-api/</code></sub>
 
-| Command | Description |
-|---|---|
-| `pnpm start:dev` | Start the API in watch mode |
-| `pnpm build` | Build for production |
-| `pnpm test` | Run unit tests |
-| `pnpm test:e2e` | Run end-to-end tests |
-| `pnpm lint` | Lint and apply fixes |
-| `pnpm prisma studio` | Open Prisma Studio |
+| Command              | Description                 |
+| -------------------- | --------------------------- |
+| `pnpm start:dev`     | Start the API in watch mode |
+| `pnpm build`         | Build for production        |
+| `pnpm test`          | Run unit tests              |
+| `pnpm test:e2e`      | Run end-to-end tests        |
+| `pnpm lint`          | Lint and apply fixes        |
+| `pnpm prisma studio` | Open Prisma Studio          |
 
 <br>
 
@@ -237,6 +250,7 @@ Redis (Upstash) backs two responsibilities in the Core API:
 - [x] Core API and user authentication
 - [x] Google and GitHub OAuth
 - [x] Redis caching and JWT blacklist logout
+- [x] User resource management (file upload, URL import, raw text)
 - [ ] Idea intake and project workspace
 - [ ] AI-assisted requirements generation
 - [ ] Database schema and ERD generation
@@ -262,7 +276,27 @@ Make focused changes, run the relevant checks, then open a pull request into `ma
 
 ## License
 
-Private and unlicensed. Add a license before distributing or accepting external contributions.
+MIT License
+
+Copyright (c) 2026 Sheikh Shamiul Shakib
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 <br><br>
 

@@ -9,6 +9,7 @@ import { AUserModule } from './a_user/a_user.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { HealthModule } from './health/health.module';
+import { UserResourceModule } from './user-resource/user-resource.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { HealthModule } from './health/health.module';
     PrismaModule,
     RedisModule,
     HealthModule,
+    UserResourceModule,
   ],
   controllers: [AppController],
   // Only services/providers belong here — modules must never be listed in providers[]
