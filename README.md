@@ -230,6 +230,22 @@ Redis (Upstash) backs two responsibilities in the Core API:
 
 <br>
 
+Redis is integrated to improve authentication performance and reduce unnecessary database queries.
+
+### Current Usage
+
+- Authentication module
+- User Repository
+- User session and token management
+- User data caching
+
+### Notes
+
+- PostgreSQL remains the primary database and source of truth.
+- Redis is used as a cache layer only.
+- Cached data is automatically invalidated when relevant user data changes.
+- The implementation is designed to support future Next.js frontend integration and horizontal scaling.
+
 ## Commands
 
 <sub>Run from <code>core-api/</code></sub>
