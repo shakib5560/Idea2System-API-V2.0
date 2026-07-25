@@ -49,6 +49,7 @@
     "ioredis": "^5.11.1",
     "multer": "^2.2.0",
     "nodemailer": "^9.0.3",
+    "openai": "^6.49.0",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",

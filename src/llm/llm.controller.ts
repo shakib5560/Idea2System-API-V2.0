@@ -12,9 +12,14 @@ export class LlmController {
     return this.llmService.create(createLlmDto);
   }
 
-  @Get()
+  @Get('gemini')
   findAll() {
     return this.llmService.findAll();
+  }
+
+  @Get('groq')
+  findGroq() {
+    return this.llmService.findGroq();
   }
 
   @Get(':id')
