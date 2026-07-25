@@ -10,6 +10,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { HealthModule } from './health/health.module';
 import { UserResourceModule } from './user-resource/user-resource.module';
+import { LlmModule } from './llm/llm.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { UserResourceModule } from './user-resource/user-resource.module';
     RedisModule,
     HealthModule,
     UserResourceModule,
+    LlmModule,
   ],
   controllers: [AppController],
   // Only services/providers belong here — modules must never be listed in providers[]

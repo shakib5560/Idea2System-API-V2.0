@@ -1,20 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateTextResourceDto {
-  @ApiProperty({
-    description: 'Title of the raw text resource',
+  @ApiPropertyOptional({
+    description: 'Optional title of the text prompt',
     example: 'Meeting Notes - July 2026',
   })
-  @IsNotEmpty({ message: 'Title is required' })
+  @IsOptional()
   @IsString()
-  title: string;
+  title?: string;
 
   @ApiProperty({
-    description: 'The raw text content of the resource',
+    description: 'The raw text prompt',
     example: 'Discussed project architecture and controller design patterns.',
   })
-  @IsNotEmpty({ message: 'Content is required' })
+  @IsNotEmpty({ message: 'Prompt is required' })
   @IsString()
-  content: string;
+  prompt: string;
 }

@@ -1,10 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PromptType } from '@prisma/client';
 
-export enum ResourceType {
-  FILE = 'FILE',
-  URL = 'URL',
-  TEXT = 'TEXT',
-}
+export { PromptType };
 
 export class UserResourceResponseDto {
   @ApiProperty({ example: 'res_123456789' })
@@ -13,26 +10,32 @@ export class UserResourceResponseDto {
   @ApiProperty({ example: 'usr_987654321' })
   userId: string;
 
-  @ApiProperty({ enum: ResourceType, example: ResourceType.FILE })
-  type: ResourceType;
+  @ApiPropertyOptional({ example: 'Meeting Notes' })
+  title?: string;
 
-  @ApiProperty({ example: 'Q3 Financial Report.pdf' })
-  title: string;
+  @ApiPropertyOptional({ example: 'Discussed architecture options' })
+  prompt?: string;
 
-  @ApiPropertyOptional({ example: 'https://example.com/article' })
-  url?: string;
-
-  @ApiPropertyOptional({ example: 'Sample text content' })
-  content?: string;
+  @ApiProperty({ enum: PromptType, example: PromptType.TEXT })
+  inputType: PromptType;
 
   @ApiPropertyOptional({ example: 'report.pdf' })
-  fileName?: string;
+  originalFileName?: string;
+
+  @ApiPropertyOptional({ example: 'application/pdf' })
+  mimeType?: string;
 
   @ApiPropertyOptional({ example: 1048576 })
   fileSize?: number;
 
-  @ApiPropertyOptional({ example: 'application/pdf' })
-  mimeType?: string;
+  @ApiPropertyOptional({ example: 'https://example.com/article' })
+  sourceUrl?: string;
+
+  @ApiPropertyOptional({ example: 'Extracted text content from source' })
+  extractedText?: string;
+
+  @ApiPropertyOptional({ example: 'Normalized text content for AI processing' })
+  normalizedText?: string;
 
   @ApiProperty()
   createdAt: Date;

@@ -1,0 +1,30 @@
+import { Injectable } from '@nestjs/common';
+import { CreateLlmDto } from './dto/create-llm.dto';
+import { UpdateLlmDto } from './dto/update-llm.dto';
+import { GeminiProvider } from './providers/gemini.provider';
+
+@Injectable()
+export class LlmService {
+  constructor(private readonly geminiProvider: GeminiProvider) {}
+  create(createLlmDto: CreateLlmDto) {
+    return 'This action adds a new llm';
+  }
+
+  async findAll() {
+    const response = await this.geminiProvider.generateText("Hello Gemini How are you ? You are working or not")
+    console.log('Response from Gemini:', response);
+    return response;
+  }
+
+  findOne(id: number) {
+    return `This action returns a #${id} llm`;
+  }
+
+  update(id: number, updateLlmDto: UpdateLlmDto) {
+    return `This action updates a #${id} llm`;
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} llm`;
+  }
+}
