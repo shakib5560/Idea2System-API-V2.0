@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { LlmService } from './llm.service';
 import { CreateLlmDto } from './dto/create-llm.dto';
 import { UpdateLlmDto } from './dto/update-llm.dto';
+import { OpenRouterProvider } from './providers/openrouter.provider';
 
 @Controller('llm')
 export class LlmController {
@@ -20,6 +21,11 @@ export class LlmController {
   @Get('groq')
   findGroq() {
     return this.llmService.findGroq();
+  }
+
+  @Get('openrouter')
+  findOpenRouter() {
+    return this.llmService.findOpenRouter();
   }
 
   @Get(':id')
