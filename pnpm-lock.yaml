@@ -97,7 +97,7 @@ importers:
         version: 9.0.3
       openai:
         specifier: ^6.49.0
-        version: 6.49.0(ws@8.21.1)
+        version: 6.49.0(ws@8.21.1)(zod@4.4.3)
       passport:
         specifier: ^0.7.0
         version: 0.7.0
@@ -131,6 +131,9 @@ importers:
       uuid:
         specifier: ^14.0.1
         version: 14.0.1
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.2.0
@@ -5312,6 +5315,9 @@ packages:
   zeptomatch@2.1.0:
     resolution: {integrity: sha512-KiGErG2J0G82LSpniV0CtIzjlJ10E04j02VOudJsPyPwNZgGnRKQy7I1R7GMyg/QswnE4l7ohSGrQbQbjXPPDA==}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@angular-devkit/core@19.2.24(chokidar@4.0.3)':
@@ -10055,9 +10061,10 @@ snapshots:
       is-wsl: 2.2.0
     optional: true
 
-  openai@6.49.0(ws@8.21.1):
+  openai@6.49.0(ws@8.21.1)(zod@4.4.3):
     optionalDependencies:
       ws: 8.21.1
+      zod: 4.4.3
 
   optionator@0.9.4:
     dependencies:
@@ -11433,3 +11440,5 @@ snapshots:
     dependencies:
       grammex: 3.1.13
       graphmatch: 1.1.1
+
+  zod@4.4.3: {}

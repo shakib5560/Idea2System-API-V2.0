@@ -251,7 +251,7 @@ Redis (Upstash) backs two responsibilities in the Core API:
 - [x] Google and GitHub OAuth
 - [x] Redis caching and JWT blacklist logout
 - [x] User resource management (file upload, URL import, raw text)
-- [x] Multiple NLM systems
+- [x] Multiple LLM systems
 - [ ] Idea intake and project workspace
 - [ ] AI-assisted requirements generation
 - [ ] Database schema and ERD generation
