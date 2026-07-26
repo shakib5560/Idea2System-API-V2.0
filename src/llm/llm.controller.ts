@@ -1,45 +1,46 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { LlmService } from './llm.service';
-import { CreateLlmDto } from './dto/create-llm.dto';
-import { UpdateLlmDto } from './dto/update-llm.dto';
-import { OpenRouterProvider } from './providers/openrouter.provider';
+import { Controller, Post, Body } from '@nestjs/common';
+import { LlmGateway } from './llm-gateway.service';
+import { OptimizeIdeaSchema } from './schemas/optimize-idea.schema';
+import { AIProvider } from './enums/llm-provider.enum';
 
 @Controller('llm')
 export class LlmController {
-  constructor(private readonly llmService: LlmService) {}
+  constructor(private readonly gateway: LlmGateway) {}
 
-  @Post()
-  create(@Body() createLlmDto: CreateLlmDto) {
-    return this.llmService.create(createLlmDto);
-  }
+  /**
+   * Temporary test endpoint to verify structured output generation.
+   * In production, controllers should only enqueue jobs.
+   */
+  @Post('test-structured')
+  async testStructuredGeneration(@Body('prompt') prompt: string, @Body('provider') providerName?: string) {
+    if (!prompt) {
+      return { error: 'Please provide a prompt in the request body.' };
+    }
 
-  @Get('gemini')
-  findAll() {
-    return this.llmService.findAll();
-  }
+    const provider = Object.values(AIProvider).includes(providerName as AIProvider) 
+      ? (providerName as AIProvider) 
+      : AIProvider.GEMINI;
 
-  @Get('groq')
-  findGroq() {
-    return this.llmService.findGroq();
-  }
+    const fullPrompt = `Optimize the following app idea into a product brief:\n\n${prompt}`;
 
-  @Get('openrouter')
-  findOpenRouter() {
-    return this.llmService.findOpenRouter();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.llmService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLlmDto: UpdateLlmDto) {
-    return this.llmService.update(+id, updateLlmDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.llmService.remove(+id);
+    try {
+      const result = await this.gateway.generateStructured(
+        fullPrompt,
+        OptimizeIdeaSchema,
+        'OptimizeIdea',
+        provider
+      );
+      
+      return {
+        success: true,
+        provider,
+        data: result,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 }

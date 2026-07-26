@@ -69,6 +69,9 @@ The repository currently ships the **Core API** — the authenticated foundation
 - Redis-backed caching layer for authenticated reads
 - JWT blacklisting for logout and forced session revocation
 - User resource management (file upload, URL import, raw text — with pagination, filtering, and per-user ownership)
+- Unified `ILlmProvider` interface for AI vendors
+- `LlmGateway` router for strict, structured JSON generation via `zod-to-json-schema`
+- Supported AI Providers: Gemini, Groq, OpenRouter
 - Request validation, CORS, Helmet, compression, rate limiting
 - Swagger / OpenAPI documentation
 

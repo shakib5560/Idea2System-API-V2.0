@@ -1,80 +1,81 @@
-import {
-  Injectable,
-  Logger,
-  HttpException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { ILlmProvider } from '../interfaces/llm-provider.interface';
 
-/**
- * Provider for interacting with OpenRouter LLM API.
- */
 @Injectable()
-export class OpenRouterProvider {
-  private readonly logger = new Logger(OpenRouterProvider.name);
+export class OpenRouterProvider implements ILlmProvider {
   private readonly client: OpenAI;
+  private readonly logger = new Logger(OpenRouterProvider.name);
 
   constructor(private readonly configService: ConfigService) {
     this.client = new OpenAI({
       apiKey: this.configService.getOrThrow<string>('OPENROUTER_API_KEY'),
       baseURL: 'https://openrouter.ai/api/v1',
       defaultHeaders: {
-        'HTTP-Referer': this.configService.get<string>(
-          'OPENROUTER_SITE_URL',
-          'http://localhost:5000',
-        ),
-        'X-Title': this.configService.get<string>(
-          'OPENROUTER_APP_NAME',
-          'Idea2System',
-        ),
+        'HTTP-Referer': 'https://idea2system.com',
+        'X-Title': 'Idea2System',
       },
     });
   }
 
-  /**
-   * Generates text completion using OpenRouter API.
-   *
-   * @param prompt The text prompt to send to the model.
-   * @param model The model identifier (defaults to 'google/gemini-2.5-flash').
-   * @param maxCompletionTokens Optional limit for completion tokens (defaults to 2048).
-   * @returns Generated text output.
-   * @throws {HttpException | InternalServerErrorException} NestJS exception on API failure.
-   */
   async generateText(
     prompt: string,
-    model = 'google/gemini-2.5-flash',
-    maxCompletionTokens = 2048,
+    model = 'anthropic/claude-3-haiku',
   ): Promise<string> {
+    try {
+      const response = await this.client.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      return response.choices[0]?.message?.content ?? '';
+    } catch (error) {
+      this.logger.error(`OpenRouter Error: ${error}`);
+      throw error;
+    }
+  }
+
+  async generateStructured<T>(
+    prompt: string,
+    schema: z.ZodType<T>,
+    schemaName: string,
+    model = 'anthropic/claude-3-haiku',
+  ): Promise<T> {
+    const jsonSchema = zodToJsonSchema(schema, schemaName);
+
+    const systemPrompt = `You are a precise data extraction AI. You must respond ONLY with raw, valid JSON that strictly satisfies the following JSON Schema:
+${JSON.stringify(jsonSchema, null, 2)}
+Ensure your output exactly matches this schema. Do not wrap the JSON in markdown code blocks or add any conversational text.`;
+
     try {
       const response = await this.client.chat.completions.create({
         model,
         messages: [
           {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
             role: 'user',
             content: prompt,
           },
         ],
-        max_completion_tokens: maxCompletionTokens,
+        // Note: Not all OpenRouter models support response_format strict json_object, 
+        // but passing the schema in the system prompt covers the fallback automatically.
+        response_format: { type: 'json_object' },
       });
 
-      return response.choices[0]?.message?.content ?? '';
-    } catch (error: any) {
-      this.logger.error(
-        `OpenRouter API call failed for model "${model}": ${error?.message || error}`,
-        error?.stack,
-      );
-
-      if (error instanceof OpenAI.APIError) {
-        throw new HttpException(
-          `OpenRouter API Error: ${error.message}`,
-          error.status || 500,
-        );
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('OpenRouter returned empty response');
       }
 
-      throw new InternalServerErrorException(
-        `Failed to generate text using OpenRouter: ${error?.message || 'Unknown error'}`,
-      );
+      return JSON.parse(content) as T;
+    } catch (error) {
+      this.logger.error(`OpenRouter Structured Error: ${error}`);
+      throw error;
     }
   }
 }
