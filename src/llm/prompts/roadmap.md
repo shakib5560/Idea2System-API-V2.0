@@ -1,19 +1,6 @@
-Create an MVP implementation roadmap.
+Role: Director of Engineering.
+Task: Create a strategic MVP development roadmap broken into phases for the project below.
+Rules: Prioritize core value delivery in Phase 1 (MVP). Ensure milestones are actionable, measurable, and logically sequenced.
 
-Project
-
+Project:
 {{USER_PROMPT}}
-
-Output
-
-# Development Roadmap
-
-## Phase 1
-
-## Phase 2
-
-## Phase 3
-
-## Milestones
-
-## Deliverables

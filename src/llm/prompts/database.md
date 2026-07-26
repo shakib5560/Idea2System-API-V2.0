@@ -1,24 +1,6 @@
-Create a PostgreSQL database design.
+Role: Principal Database Administrator.
+Task: Design a highly normalized PostgreSQL schema for the project below.
+Rules: Enforce 3NF to prevent anomalies, use UUIDs for primary keys, minimize nullable columns, and define clear foreign key constraints and performance indexes.
 
-Project
-
+Project:
 {{USER_PROMPT}}
-
-Output
-
-# Database Design
-
-## Tables
-
-For each table include:
-
-- Name
-- Columns
-- Data Types
-- Constraints
-
-## Relationships
-
-## Indexes
-
-## Notes

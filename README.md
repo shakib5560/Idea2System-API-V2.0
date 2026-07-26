@@ -71,6 +71,7 @@ The repository currently ships the **Core API** — the authenticated foundation
 - User resource management (file upload, URL import, raw text — with pagination, filtering, and per-user ownership)
 - Unified `ILlmProvider` interface for AI vendors
 - `LlmGateway` router for strict, structured JSON generation via `zod-to-json-schema`
+- Persona-driven, highly token-efficient prompt templates for LLM agents
 - Supported AI Providers: Gemini, Groq, OpenRouter
 - Request validation, CORS, Helmet, compression, rate limiting
 - Swagger / OpenAPI documentation

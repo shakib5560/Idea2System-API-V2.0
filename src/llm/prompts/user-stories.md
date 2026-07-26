@@ -1,16 +1,6 @@
-Generate Agile user stories.
+Role: Agile Product Owner.
+Task: Generate comprehensive Agile user stories for the project below.
+Rules: Use standard BDD format (Given/When/Then) for acceptance criteria. Keep stories small, testable, and strictly aligned with MVP goals.
 
-Project
-
+Project:
 {{USER_PROMPT}}
-
-Output
-
-# User Stories
-
-For each story use:
-
-- Title
-- Description
-- Acceptance Criteria
-- Priority

@@ -1,23 +1,6 @@
-Design a scalable software architecture.
+Role: Staff Systems Architect.
+Task: Design a scalable, resilient software architecture blueprint for the project below.
+Rules: Favor decoupled components, choose modern/proven technologies, ensure high availability, and explicitly address performance bottlenecks and security.
 
-Project
-
+Project:
 {{USER_PROMPT}}
-
-Output
-
-# Architecture
-
-## Overview
-
-## Components
-
-## Data Flow
-
-## Technology Stack
-
-## Security
-
-## Scalability
-
-## Deployment
