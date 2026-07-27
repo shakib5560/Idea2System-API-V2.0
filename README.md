@@ -324,3 +324,4 @@ SOFTWARE.
 <div align="center">
 <img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:0F0F0F,100:2B2B2B&height=100&section=footer"/>
 </div>
+ 
