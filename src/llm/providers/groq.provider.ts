@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { zodResponseFormat } from 'openai/helpers/zod';
 import { ILlmProvider } from '../interfaces/llm-provider.interface';
 
 @Injectable()
@@ -39,7 +39,8 @@ export class GroqProvider implements ILlmProvider {
     schemaName: string,
     model = 'llama-3.3-70b-versatile',
   ): Promise<T> {
-    const jsonSchema = zodToJsonSchema(schema, schemaName);
+    const format = zodResponseFormat(schema as any, schemaName);
+    const jsonSchema = format.json_schema.schema;
 
     // Groq requires json_object mode + schema injection for structured outputs
     const systemPrompt = `You are a precise data extraction AI. You must respond ONLY with raw, valid JSON that strictly satisfies the following JSON Schema:

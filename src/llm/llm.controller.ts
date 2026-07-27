@@ -1,6 +1,9 @@
 import { Controller, Post, Body } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
 import { LlmGateway } from './llm-gateway.service';
 import { OptimizeIdeaSchema } from './schemas/optimize-idea.schema';
+import { DatabaseSchema } from './schemas/database.schema';
 import { AIProvider } from './enums/llm-provider.enum';
 
 @Controller('llm')
@@ -34,6 +37,32 @@ export class LlmController {
       return {
         success: true,
         provider,
+        data: result,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Post('dberd')
+  async testDatabaseGeneration() {
+    try {
+      const promptPath = path.join(process.cwd(), 'src', 'llm', 'prompts', 'database.md');
+      const promptTemplate = fs.readFileSync(promptPath, 'utf8');
+      const fullPrompt = promptTemplate.replace('{{USER_PROMPT}}', 'Database for LMS for NSU');
+
+      const result = await this.gateway.generateStructured(
+        fullPrompt,
+        DatabaseSchema,
+        'Database',
+        AIProvider.GEMINI
+      );
+
+      return {
+        success: true,
         data: result,
       };
     } catch (error: any) {
