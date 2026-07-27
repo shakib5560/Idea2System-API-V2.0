@@ -1,327 +1,349 @@
 <div align="center">
 
-<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:0F0F0F,100:2B2B2B&height=180&section=header&text=Idea2System&fontSize=46&fontColor=ffffff&fontAlignY=38&animation=fadeIn&desc=Idea%20%E2%86%92%20Requirements%20%E2%86%92%20Database%20%E2%86%92%20Architecture%20%E2%86%92%20API%20%E2%86%92%20Plan&descSize=16&descAlignY=58&descColor=cfcfcf"/>
+# Idea2System API
 
-<br>
+**Transform raw ideas into production-ready system architectures, database schemas, and API specs using LLMs.**
 
-<a href="#">
-  <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=400&size=16&duration=2800&pause=900&color=8A8A8A&center=true&vCenter=true&width=560&lines=Turn+a+raw+idea+into+a+buildable+technical+blueprint.;One+workflow%2C+not+five+disconnected+tools.;Requirements+%E2%80%A2+Schema+%E2%80%A2+Architecture+%E2%80%A2+API+%E2%80%A2+Roadmap." alt="Typing SVG" />
-</a>
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-11.x-E0234E?style=flat-square&logo=nestjs)](https://nestjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-7.x-2D3748?style=flat-square&logo=prisma)](https://www.prisma.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-<br><br>
+[Documentation](#) &nbsp; &middot; &nbsp; [Live Demo](#) &nbsp; &middot; &nbsp; [Report Bug](#) &nbsp; &middot; &nbsp; [Request Feature](#)
 
-<img src="https://img.shields.io/badge/status-active--development-000000?style=flat-square&labelColor=000000" height="22"/>
-<img src="https://img.shields.io/badge/license-private-000000?style=flat-square&labelColor=000000" height="22"/>
-<img src="https://img.shields.io/badge/node-%E2%89%A520-000000?style=flat-square&labelColor=000000" height="22"/>
-<img src="https://img.shields.io/badge/pnpm-%E2%89%A59-000000?style=flat-square&labelColor=000000" height="22"/>
-
+<br/>
 </div>
 
-<br>
+---
+
+## Product Overview
+
+Idea2System is a highly scalable, developer-first backend engine designed to bridge the gap between initial product ideation and technical implementation. By leveraging multiple LLM providers (Google Gemini, Groq, OpenRouter, and OpenAI) alongside strict Zod schema validation, Idea2System ingests natural language project descriptions and deterministically outputs complex system artifacts—including ERD relationships, API route designs, and project roadmaps.
+
+Built on NestJS and backed by PostgreSQL and Redis, it handles asynchronous AI tasks via BullMQ to provide a seamless, non-blocking experience.
+
+---
+
+## Why This Exists
+
+Generating boilerplate, architecting databases, and writing extensive API definitions for new projects is tedious and error-prone. 
+
+- **The Problem:** Developers spend days translating product ideas into technical requirements, ERDs, and architecture documents before writing a single line of code.
+- **The Solution:** Idea2System acts as an autonomous Staff Engineer. You provide the prompt; the API provides the exact structural blueprints required to build the product, formatted in guaranteed, strongly-typed JSON.
+
+---
+
+## Key Features
+
+- **Multi-LLM Routing:** Native integrations with Google GenAI, Groq, and OpenRouter. 
+- **Deterministic AI Outputs:** Utilizes `openai/helpers/zod` to enforce strict schema adherence, completely eliminating LLM hallucination in data structures.
+- **Robust Asynchronous Queues:** Heavy AI workloads are offloaded to BullMQ backed by Upstash Redis.
+- **Comprehensive Auth:** Secure JWT sessions, encrypted tokens, and OAuth2 (GitHub & Google) out of the box.
+- **Premium Caching:** Distributed cache management for rapid subsequent API responses.
+- **Developer-Centric:** Built with clean architecture principles, rigorous TypeScript typing, and highly extensible provider patterns.
+
+---
+
+## Preview
 
 <div align="center">
-<sub>NESTJS &nbsp;·&nbsp; TYPESCRIPT &nbsp;·&nbsp; POSTGRESQL &nbsp;·&nbsp; PRISMA &nbsp;·&nbsp; REDIS &nbsp;·&nbsp; SWAGGER</sub>
+  <img src="https://via.placeholder.com/1000x500/09090b/e4e4e7?text=Idea2System+Dashboard+Preview" alt="Idea2System Dashboard Preview" width="100%">
+  <br/>
+  <p><em>Example UI interacting with the Idea2System Core API</em></p>
 </div>
 
-<br><br>
+---
 
-## Overview
+## Architecture Overview
 
-Building a product from scratch usually means bouncing between separate tools — one for discovery, one for schema design, another for architecture, another for planning. Handled in isolation, decisions drift out of sync.
+```mermaid
+graph TD;
+    Client([Client Application]) -->|REST API| NestJS[NestJS Gateway];
+    
+    subgraph Core Backend
+        NestJS --> Auth[Auth Module (JWT/OAuth)];
+        NestJS --> Cache[(Redis Cache)];
+        NestJS --> Queue[BullMQ Job Queue];
+        NestJS --> DB[(PostgreSQL + Prisma)];
+    end
 
-**Idea2System** collapses that into a single pass:
-
+    subgraph AI Pipeline
+        Queue --> Worker[AI Processing Worker];
+        Worker --> Zod[Zod Schema Compiler];
+        Zod --> Router{LLM Router};
+        Router --> Gemini[Google Gemini];
+        Router --> Groq[Groq Llama 3];
+        Router --> OpenRouter[OpenRouter Claude];
+    end
+    
+    Worker -->|Structured Output| DB;
 ```
-Idea → Requirements → Database Design → System Architecture → API Design → Development Plan
+
+---
+
+## Technology Stack
+
+| Category | Technology |
+|---|---|
+| **Framework** | NestJS 11.x, Express |
+| **Language** | TypeScript 5.7 |
+| **Database** | PostgreSQL, Prisma ORM 7.x |
+| **Caching & Queues** | Redis (ioredis), BullMQ, Cache-Manager |
+| **AI Integration** | `@google/genai`, OpenAI SDK, Zod |
+| **Authentication** | Passport (JWT, Google, GitHub), bcrypt, argon2 |
+| **Security** | Helmet, express-rate-limit |
+
+---
+
+## Project Structure
+
+```text
+idea2system-api/
+├── src/
+│   ├── auth/                 # OAuth2 & JWT Strategy configurations
+│   ├── llm/                  # AI Pipeline
+│   │   ├── providers/        # LLM Implementations (Gemini, Groq, OpenRouter)
+│   │   ├── schemas/          # Zod strictly typed output definitions
+│   │   └── llm-gateway.ts    # AI routing and processing logic
+│   ├── user-resource/        # Core business logic and resource management
+│   ├── config/               # Environment & App configuration
+│   └── main.ts               # Application entry point
+├── prisma/
+│   └── schema.prisma         # Database models and relations
+├── docker-compose.yml        # Container orchestration
+└── package.json
 ```
 
-Not a replacement for engineering judgment — a strong, editable starting point your team can validate together.
+---
 
-<br>
-
-## What it generates
-
-<table>
-<tr><td width="180"><b>Requirements</b></td><td>Problem statement, target users, user stories, functional & non-functional requirements</td></tr>
-<tr><td><b>Database Design</b></td><td>Entities, relationships, fields, constraints, schema structure</td></tr>
-<tr><td><b>System Architecture</b></td><td>Components, services, integrations, data flow, technology choices</td></tr>
-<tr><td><b>API Design</b></td><td>Endpoint groups, request/response contracts, auth, error handling</td></tr>
-<tr><td><b>Development Plan</b></td><td>Prioritized milestones, tasks, dependencies, MVP-first delivery</td></tr>
-</table>
-
-<br>
-
-## Current status
-
-The repository currently ships the **Core API** — the authenticated foundation the AI planning modules build on.
+## Getting Started
 
 <details>
-<summary><b>Shipped</b></summary>
-<br>
+<summary><strong>1. Installation</strong></summary>
 
-- NestJS API foundation with API versioning
-- PostgreSQL persistence through Prisma
-- Email/password registration and login
-- JWT-based sessions with signed, HTTP-only cookies
-- Google OAuth 2.0 / OIDC login with PKCE
-- GitHub OAuth login with PKCE
-- Encrypted storage of provider tokens
-- Redis-backed caching layer for authenticated reads
-- JWT blacklisting for logout and forced session revocation
-- User resource management (file upload, URL import, raw text — with pagination, filtering, and per-user ownership)
-- Unified `ILlmProvider` interface for AI vendors
-- `LlmGateway` router for strict, structured JSON generation via `zod-to-json-schema`
-- Persona-driven, highly token-efficient prompt templates for LLM agents
-- Supported AI Providers: Gemini, Groq, OpenRouter
-- Request validation, CORS, Helmet, compression, rate limiting
-- Swagger / OpenAPI documentation
+Clone the repository and install dependencies.
+
+```bash
+git clone https://github.com/shakib5560/Idea2System-API-V2.0.git
+cd Idea2System-API-V2.0
+npm install
+```
+</details>
+
+<details>
+<summary><strong>2. Environment Variables</strong></summary>
+
+Create a `.env` file in the root directory.
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_HOST` / `PORT` | Redis instance (e.g., Upstash) |
+| `JWT_SECRET` | Minimum 32-character signing key |
+| `TOKEN_ENCRYPTION_KEY` | 64-character hex key for AES-256-GCM |
+| `GEMINI_API_KEY` | Google AI Studio API Key |
+| `GROQ_API_KEY` | Groq API Key |
+| `OPENROUTER_API_KEY` | OpenRouter API Key |
 
 </details>
 
-<sub>AI-generated planning modules and the client application are next.</sub>
+<details>
+<summary><strong>3. Database Setup</strong></summary>
 
-<br>
-
-## Tech stack
-
-| Layer                 | Choice                                       |
-| --------------------- | -------------------------------------------- |
-| API                   | NestJS · TypeScript                          |
-| Database              | PostgreSQL                                   |
-| ORM                   | Prisma                                       |
-| Cache & session store | Redis (Upstash)                              |
-| Auth                  | Passport · JWT · Google OAuth · GitHub OAuth |
-| Docs                  | Swagger / OpenAPI                            |
-| Package manager       | pnpm                                         |
-
-<br>
-
-## Structure
-
-```
-.
-├── core-api/              NestJS backend application
-│   ├── prisma/             Prisma schema and migrations
-│   ├── src/auth/            Local and OAuth authentication, JWT strategy, token blacklist service
-│   ├── src/user-resource/   User resource management (file, URL, text — CRUD + pagination)
-│   ├── src/redis/           Redis client module (cache + blacklist)
-│   ├── src/common/          Shared services, including token encryption
-│   └── src/prisma/          Prisma module and service
-└── README.md
-```
-
-<br>
-
-## Getting started
-
-**Prerequisites** — Node.js 20+, pnpm 9+, PostgreSQL, Redis (Upstash free tier recommended)
-
-<br>
-
-**1 · Install**
+Push the Prisma schema to your PostgreSQL database.
 
 ```bash
-cd core-api
-pnpm install
+npx prisma db push
 ```
-
-**2 · Configure** — create `core-api/.env` (never commit this file)
-
-<details>
-<summary>Show environment variables</summary>
-
-```env
-PORT=5000
-NODE_ENV=development
-CLIENT_URL=http://localhost:3000
-# Public address of this API. Used in verification email links.
-API_URL=http://localhost:5000
-
-DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/idea2system?schema=public
-
-JWT_SECRET=replace-with-a-long-random-secret
-COOKIE_SECRET=replace-with-a-long-random-secret
-# Exactly 64 hexadecimal characters (32 bytes)
-TOKEN_ENCRYPTION_KEY=replace-with-a-64-character-hex-key
-
-# Transactional email (Resend). Omitting RESEND_API_KEY in dev logs the
-# verification link instead of sending it.
-RESEND_API_KEY=re_your-resend-api-key
-EMAIL_FROM=Idea2System <onboarding@your-verified-domain.com>
-
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
-GITHUB_CALLBACK_URL=http://localhost:5000/api/v1.0/auth/github/callback
-
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:5000/api/v1.0/auth/google/callback
-
-# Redis configuration (Upstash — TLS required, single database).
-# Key prefixing (cache: / bl:) is used instead of database index splitting.
-REDIS_HOST=your-upstash-redis-endpoint.upstash.io
-REDIS_PORT=6379
-REDIS_PASSWORD=your-upstash-redis-password
-REDIS_TLS=true
-```
-
 </details>
 
-Register these redirect URLs with each provider for local development:
+<details>
+<summary><strong>4. Local Development</strong></summary>
 
-| Provider | Redirect URL                                          |
-| -------- | ----------------------------------------------------- |
-| Google   | `http://localhost:5000/api/v1.0/auth/google/callback` |
-| GitHub   | `http://localhost:5000/api/v1.0/auth/github/callback` |
-
-**3 · Migrate**
+Start the development server.
 
 ```bash
-pnpm prisma migrate dev
+npm run start:dev
 ```
+</details>
 
-**4 · Run**
+---
+
+## Docker Setup
+
+To run the entire stack (API, PostgreSQL, Redis) completely isolated via Docker:
 
 ```bash
-pnpm start:dev
+docker-compose up -d
 ```
 
-API → `http://localhost:5000/api/v1.0`
-Swagger (dev only) → `http://localhost:5000/api/v1.0/docs`
+---
 
-<br>
+## API Overview
 
-## Authentication endpoints
+### Base URL: `http://localhost:5000/api/v1.0`
 
-| Method | Endpoint                                | Purpose                                                |
-| ------ | --------------------------------------- | ------------------------------------------------------ |
-| `POST` | `/api/v1.0/auth/register`               | Create an account with email and password              |
-| `GET`  | `/api/v1.0/auth/verify-email?token=...` | Verify a newly registered email address                |
-| `POST` | `/api/v1.0/auth/resend-verification`    | Request a new verification link                        |
-| `POST` | `/api/v1.0/auth/login`                  | Sign in with email and password                        |
-| `GET`  | `/api/v1.0/auth/google`                 | Start Google sign-in                                   |
-| `GET`  | `/api/v1.0/auth/github`                 | Start GitHub sign-in                                   |
-| `GET`  | `/api/v1.0/auth/me`                     | Get the authenticated user profile (Redis-cached)      |
-| `POST` | `/api/v1.0/auth/logout`                 | End the current session and blacklist the active token |
-| `POST` | `/api/v1.0/auth/logout-everywhere`      | Revoke all active tokens for the authenticated user    |
-| `POST` | `/api/v1.0/auth/change-password`        | Change user password and revoke all active sessions    |
-| `GET`  | `/api/v1.0/health`                      | Report API and Redis connectivity status               |
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/auth/google` | Initialize Google OAuth2 flow |
+| `POST` | `/auth/github` | Initialize GitHub OAuth2 flow |
+| `POST` | `/llm/dberd` | Generate a Database ERD from a prompt |
+| `POST` | `/user-resource/text` | Create a text-based project resource |
 
-## User Resource endpoints
+---
 
-| Method   | Endpoint                          | Auth     | Purpose                                                               |
-| -------- | --------------------------------- | -------- | --------------------------------------------------------------------- |
-| `POST`   | `/api/v1.0/user-resources/upload` | Required | Upload a file resource (PDF, DOCX, TXT, CSV, JSON, image — max 10 MB) |
-| `POST`   | `/api/v1.0/user-resources/url`    | Required | Import external content from a URL                                    |
-| `POST`   | `/api/v1.0/user-resources/text`   | Public   | Create a resource from raw text (guests supported)                    |
-| `GET`    | `/api/v1.0/user-resources`        | Required | List resources owned by the current user (paginated, filterable)      |
-| `GET`    | `/api/v1.0/user-resources/:id`    | Required | Retrieve a single resource by ID                                      |
-| `DELETE` | `/api/v1.0/user-resources/:id`    | Required | Permanently delete a resource by ID                                   |
+## Example Usage
 
-<sub>Full OAuth configuration and endpoint list in the <a href="core-api/README.md">Core API README</a>.</sub>
+### Request (Generate ERD)
 
-<br>
+```bash
+curl -X POST http://localhost:5000/api/v1.0/llm/dberd \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -d '{
+    "prompt": "Design a relational database for a university learning management system."
+  }'
+```
 
-## Redis usage
+### Response
 
-Redis (Upstash) backs two responsibilities in the Core API:
+> [!NOTE]
+> The output below is strictly enforced by Zod 4 and the OpenAI schema parser to guarantee 100% adherence to the requested data structure.
 
-- **Caching** — short-lived storage for authenticated reads (e.g. `auth/me`) under the `cache:` key prefix, reducing repeated database lookups.
-- **JWT blacklisting** — every issued JWT carries a unique `jti` claim. On logout, that `jti` is stored under the `bl:` key prefix with a TTL matching the token's remaining lifetime, so the entry expires naturally and never outlives the token it revokes. A parallel `bl:user:<id>` key supports revoking every token belonging to a user at once, used for "log out everywhere" and password-change flows.
+```json
+{
+  "success": true,
+  "data": {
+    "tables": [
+      {
+        "tableName": "users",
+        "description": "Stores authentication and profile data for students, teachers, and admins.",
+        "columns": [
+          {
+            "name": "id",
+            "type": "UUID",
+            "isPrimary": true,
+            "isNullable": false
+          },
+          {
+            "name": "email",
+            "type": "VARCHAR(255)",
+            "isUnique": true,
+            "isNullable": false
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "fromTable": "users",
+        "toTable": "course_enrollments",
+        "type": "ONE_TO_MANY"
+      }
+    ]
+  }
+}
+```
 
-> [!IMPORTANT]
-> **Fail-closed by design.** Token blacklist checks run on every authenticated request. If Redis is unreachable, requests are rejected (`401 Unauthorized`) rather than allowed through — a revoked token must never be treated as valid just because the blacklist couldn't be checked.
+---
 
-<br>
+## Database Design
 
-Redis is integrated to improve authentication performance and reduce unnecessary database queries.
+```mermaid
+erDiagram
+    USERS ||--o{ COURSE_ENROLLMENTS : "enrolled_in"
+    USERS {
+        uuid id PK
+        varchar email
+    }
+    COURSE_ENROLLMENTS {
+        uuid id PK
+        uuid user_id FK
+        uuid course_id FK
+    }
+```
 
-### Current Usage
+---
 
-- Authentication module
-- User Repository
-- User session and token management
-- User data caching
+## Project Workflow
 
-### Notes
+1. **Ideation:** Client submits a product idea via REST API.
+2. **Delegation:** NestJS pushes the task to a BullMQ queue for background processing.
+3. **LLM Routing:** Worker picks up the job and routes it to the designated provider (Gemini/Groq/OpenRouter).
+4. **Validation:** The AI's JSON output is strictly verified against local Zod schemas.
+5. **Persistence:** Verified structured data is saved to PostgreSQL via Prisma.
 
-- PostgreSQL remains the primary database and source of truth.
-- Redis is used as a cache layer only.
-- Cached data is automatically invalidated when relevant user data changes.
-- The implementation is designed to support future Next.js frontend integration and horizontal scaling.
+---
 
-## Commands
+## AI Pipeline
 
-<sub>Run from <code>core-api/</code></sub>
+Our AI generation pipeline guarantees output structure regardless of the LLM provider used:
 
-| Command              | Description                 |
-| -------------------- | --------------------------- |
-| `pnpm start:dev`     | Start the API in watch mode |
-| `pnpm build`         | Build for production        |
-| `pnpm test`          | Run unit tests              |
-| `pnpm test:e2e`      | Run end-to-end tests        |
-| `pnpm lint`          | Lint and apply fixes        |
-| `pnpm prisma studio` | Open Prisma Studio          |
+1. **Prompt Ingestion:** The user prompt is sanitized and packaged with system instructions.
+2. **Schema Compilation:** We use `openai/helpers/zod` (`zodResponseFormat`) to convert complex, nested Zod 4 definitions into strict JSON Schemas.
+3. **Provider Routing:** The request is routed to the configured provider (Gemini 3.6 Flash, Groq, or OpenRouter).
+4. **Validation:** The response payload is passed through the original Zod schema to guarantee type safety and relationship integrity before being saved to the database.
 
-<br>
+---
 
 ## Roadmap
 
-- [x] Core API and user authentication
-- [x] Google and GitHub OAuth
-- [x] Redis caching and JWT blacklist logout
-- [x] User resource management (file upload, URL import, raw text)
-- [x] Multiple LLM systems
-- [ ] Idea intake and project workspace
-- [ ] AI-assisted requirements generation
-- [ ] Database schema and ERD generation
-- [ ] Architecture and technology recommendations
-- [ ] API contract generation
-- [ ] Milestone and task planning
-- [ ] Exportable technical blueprints
-- [ ] Collaborative review and version history
+- [x] Integrate Google Gemini, Groq, and OpenRouter
+- [x] Migrate to strict OpenAI JSON Schema compilation
+- [x] Complete OAuth2 authentication flow
+- [ ] Implement WebSockets for real-time AI generation streaming
+- [ ] Add vector database for RAG (Retrieval-Augmented Generation) capabilities
+- [ ] Build comprehensive unit & e2e test suite
+- [ ] Create CLI scaffolding tool driven by API outputs
 
-<br>
+---
+
+## Performance Goals
+
+- **API Latency:** `< 50ms` for all non-AI endpoints.
+- **Cache Hit Ratio:** Target `> 80%` for repeated architecture generation requests.
+- **Job Processing:** Handle up to `100+` concurrent LLM generation jobs via BullMQ without blocking the main event loop.
+
+---
+
+## Security
+
+Idea2System takes application security seriously:
+- Password hashing utilizing `argon2`.
+- Stateless, cryptographically signed `JWT` authentication.
+- AES-256-GCM encryption for sensitive third-party OAuth tokens.
+- Native rate limiting to prevent brute force and DDoS attacks.
+- Execution within hardened Docker containers.
+
+---
 
 ## Contributing
 
-```bash
-git switch main
-git pull origin main
-git switch -c feature/short-description
-```
+We welcome contributions from the community. To contribute:
 
-Make focused changes, run the relevant checks, then open a pull request into `main`.
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/amazing-feature`).
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`).
+4. Push to the branch (`git push origin feature/amazing-feature`).
+5. Open a Pull Request.
 
-<br>
+Please ensure all tests pass and code adheres to the existing ESLint and Prettier configurations.
+
+---
 
 ## License
 
-MIT License
+This project is currently unlicensed (`UNLICENSED`). All rights reserved.
 
-Copyright (c) 2026 Sheikh Shamiul Shakib
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-<br><br>
+---
 
 <div align="center">
-<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:0F0F0F,100:2B2B2B&height=100&section=footer"/>
+  <p>Built by <strong>Sheikh Shamiul Shakib</strong>.</p>
+  <p>Support: <a href="mailto:dev.shakib24@gmail.com">dev.shakib24@gmail.com</a></p>
 </div>
- 
