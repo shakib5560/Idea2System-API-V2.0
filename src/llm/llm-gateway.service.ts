@@ -4,6 +4,7 @@ import { AIProvider } from './enums/llm-provider.enum';
 import { GeminiProvider } from './providers/gemini.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { OpenRouterProvider } from './providers/openrouter.provider';
+import { LlmRouterService, SmartRouteResult } from './services/llm-router.service';
 
 @Injectable()
 export class LlmGateway {
@@ -13,6 +14,7 @@ export class LlmGateway {
     private readonly gemini: GeminiProvider,
     private readonly groq: GroqProvider,
     private readonly openRouter: OpenRouterProvider,
+    private readonly router: LlmRouterService,
   ) {}
 
   private getProvider(providerName: AIProvider) {
@@ -74,5 +76,42 @@ export class LlmGateway {
     }
     
     throw new Error('Unreachable state in LlmGateway');
+  }
+
+  // ─── Smart auto-routing methods ────────────────────────────────────────────
+
+  /**
+   * Generate a plain text response using the intelligent auto-router.
+   *
+   * The router will:
+   *  1. Classify the prompt into SIMPLE / MODERATE / COMPLEX
+   *  2. Select the best-fit (provider, model) for that tier
+   *  3. Automatically fall over to the next candidate on failure
+   *
+   * @returns SmartRouteResult containing the text data plus metadata
+   *          about which provider/model was ultimately used.
+   */
+  async smartGenerateText(prompt: string): Promise<SmartRouteResult<string>> {
+    this.logger.debug('smartGenerateText — delegating to LlmRouterService');
+    return this.router.routeText(prompt);
+  }
+
+  /**
+   * Generate a structured (typed) response using the intelligent auto-router.
+   *
+   * @param prompt     The raw prompt string.
+   * @param schema     Zod schema describing the expected output shape.
+   * @param schemaName A valid JSON-Schema name (alphanumeric, no spaces).
+   * @returns SmartRouteResult<T> — includes the typed data plus routing metadata.
+   */
+  async smartGenerateStructured<T>(
+    prompt: string,
+    schema: z.ZodType<T>,
+    schemaName: string,
+  ): Promise<SmartRouteResult<T>> {
+    this.logger.debug(
+      `smartGenerateStructured for schema "${schemaName}" — delegating to LlmRouterService`,
+    );
+    return this.router.routeStructured(prompt, schema, schemaName);
   }
 }
