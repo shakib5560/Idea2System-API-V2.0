@@ -44,10 +44,12 @@ The core technical guarantee is structural determinism. Every LLM response is va
 
 | Feature | Description |
 |---|---|
-| **Multi-LLM Routing** | Unified gateway over Google Gemini, Groq (Llama 3.3), and OpenRouter. Switch providers per-request or per-schema type. |
-| **Deterministic Outputs** | `openai/helpers/zod` compiles Zod 4 schemas to strict JSON Schema. LLMs are constrained to exact object shapes — no hallucinated fields. |
+| **Intelligent Prompt-Tier Routing** | Automatically classifies each prompt as `SIMPLE`, `MODERATE`, or `COMPLEX` and routes to the best-fit provider/model. Falls over to the next healthy candidate on failure. |
+| **Provider Health Tracking** | `ProviderHealthService` tracks consecutive failures, enforces configurable cooldown windows, and optimistically recovers providers after downtime — zero manual intervention. |
+| **Multi-LLM Providers** | Unified gateway over Google Gemini, Groq (Llama 3.3), and OpenRouter (Claude). Switch providers per-request or let the router decide automatically. |
+| **Deterministic Outputs** | `openai/helpers/zod` compiles Zod 4 schemas to strict JSON Schema. LLMs are constrained to exact object shapes — no hallucinated or missing fields. |
 | **Async Job Processing** | BullMQ workers backed by Upstash Redis isolate long-running AI generation from the HTTP request lifecycle. |
-| **Complete Auth System** | JWT with AES-256-GCM token encryption, Argon2 password hashing, OAuth2 via GitHub and Google, plus a Redis-backed JWT blacklist. |
+| **Complete Auth System** | JWT with AES-256-GCM token encryption, Argon2id password hashing, OAuth2 via GitHub and Google, plus a Redis-backed JWT blacklist. |
 | **Distributed Caching** | Redis cache manager with namespace-prefix isolation between response cache and token blacklist. |
 | **Project Lifecycle** | Full state machine from `DRAFT → ANALYZING → IN_PROGRESS → COMPLETED` with QA reports and AI-generated clarification questions. |
 | **Structured Prompt Templates** | Markdown-based prompt templates with typed variable injection, stored alongside their matching Zod output schemas. |
@@ -62,54 +64,78 @@ graph TD
 
     subgraph NestJS Application
         Gateway["API Gateway\n/api/v1.0"] --> AuthMod["Auth Module\n(JWT · OAuth2 · Guards)"]
-        Gateway --> LLMMod["LLM Module\n(Controller · Gateway Service)"]
+        Gateway --> LLMMod["LLM Module\n(Controller · Gateway)"]
         Gateway --> ResourceMod["User Resource Module\n(Prompt Ingestion)"]
         Gateway --> HealthMod["Health Module"]
 
         LLMMod --> BullMQ["BullMQ Queue\n(Async Jobs)"]
-        LLMMod --> LLMGateway["LlmGateway Service\n(Provider Router)"]
+        LLMMod --> LLMGateway["LlmGateway Service\n(Entry Point)"]
 
-        LLMGateway --> Gemini["Google Gemini\ngemini-3.6-flash"]
-        LLMGateway --> Groq["Groq\nllama-3.3-70b-versatile"]
-        LLMGateway --> OpenRouter["OpenRouter\nclaude-3-haiku"]
+        LLMGateway --> Analyzer["PromptAnalyzerService\n(SIMPLE / MODERATE / COMPLEX)"]
+        LLMGateway --> Router["LlmRouterService\n(Tier-based Failover)"]
+        LLMGateway --> HealthSvc["ProviderHealthService\n(Cooldown Tracker)"]
+
+        Router --> Gemini["Google Gemini\ngemini-2.5-flash"]
+        Router --> Groq["Groq\nllama-3.3-70b-versatile"]
+        Router --> OpenRouter["OpenRouter\nclaude-3-haiku"]
 
         Gemini & Groq & OpenRouter --> ZodValidator["Zod 4 Validator\n(zodResponseFormat)"]
     end
 
     ZodValidator -->|Validated JSON| PG[("PostgreSQL\nPrisma ORM")]
     AuthMod & BullMQ --> Redis[("Redis\nCache · Blacklist · Queue")]
+    HealthSvc -.->|Marks healthy/unhealthy| Router
 ```
 
 ---
 
 ## AI Pipeline
 
-The structured generation pipeline enforces output correctness at every stage, independent of the LLM provider.
+The structured generation pipeline enforces output correctness at every stage, independent of the LLM provider. Intelligent routing automatically classifies each prompt and selects the best available model — with transparent failover.
 
 ```mermaid
 sequenceDiagram
     participant API as REST API
     participant GW as LlmGateway
-    participant SC as Schema Compiler
-    participant LLM as LLM Provider
-    participant ZOD as Zod Validator
+    participant PA as PromptAnalyzerService
+    participant HS as ProviderHealthService
+    participant Router as LlmRouterService
+    participant LLM as LLM Provider (Gemini / Groq / OpenRouter)
+    participant ZOD as Zod 4 Validator
     participant DB as PostgreSQL
 
-    API->>GW: generateStructured(prompt, ZodSchema, provider)
-    GW->>SC: zodResponseFormat(schema, schemaName)
-    SC-->>GW: Strict JSON Schema object
-    GW->>LLM: generate(prompt + JSON Schema constraint)
-    LLM-->>GW: Raw JSON string
-    GW->>ZOD: schema.parse(rawJson)
-    alt Validation passes
-        ZOD-->>GW: Typed TypeScript object
-        GW->>DB: Persist structured data
-        DB-->>API: 200 OK + validated payload
-    else Validation fails (retry ≤ 2)
-        ZOD-->>GW: ZodError
-        GW->>LLM: Retry with same constraints
+    API->>GW: smartGenerateStructured(prompt, ZodSchema)
+    GW->>PA: analyze(prompt, schema) → PromptTier
+    PA-->>GW: SIMPLE | MODERATE | COMPLEX
+    GW->>HS: isHealthy(provider) for each candidate
+    HS-->>GW: Ranked healthy candidate list
+    loop Each candidate (failover)
+        GW->>Router: zodResponseFormat → JSON Schema
+        Router->>LLM: generate(prompt + JSON Schema constraint)
+        LLM-->>Router: Raw JSON string
+        Router->>ZOD: schema.parse(rawJson)
+        alt Validation passes
+            ZOD-->>GW: Typed TypeScript object
+            GW->>HS: markSuccess(provider)
+            GW->>DB: Persist validated data
+            DB-->>API: 200 OK + payload + routing metadata
+        else Provider error or ZodError
+            ZOD-->>GW: Error
+            GW->>HS: markFailure(provider)
+            Note over GW: Try next candidate
+        end
     end
 ```
+
+### Prompt Tier Classification
+
+`PromptAnalyzerService` scores each prompt against heuristics (token count, schema field depth, semantic keywords) to assign a tier. The tier drives which models are tried and in what order.
+
+| Tier | Trigger | Default Model |
+|---|---|---|
+| `SIMPLE` | Short prompts, shallow schemas | Gemini Flash |
+| `MODERATE` | Mid-length prompts, nested schemas | Gemini Flash → Groq fallback |
+| `COMPLEX` | Long prompts, deep schemas (DatabaseSchema etc.) | Gemini 2.5 Flash → Groq → OpenRouter |
 
 ### Prompt Templates
 
@@ -265,12 +291,18 @@ idea2system-api/
 │   │   └── token-blacklist.service.ts
 │   │
 │   ├── llm/
-│   │   ├── enums/               # AIProvider enum
+│   │   ├── config/              # MODEL_ROUTING_TABLE (tier → candidates)
+│   │   ├── enums/               # AIProvider, PromptTier enums
+│   │   ├── errors/              # AllProvidersFailedError
 │   │   ├── interfaces/          # ILlmProvider interface
 │   │   ├── prompts/             # Markdown prompt templates (database.md, api.md ...)
 │   │   ├── providers/           # GeminiProvider, GroqProvider, OpenRouterProvider
 │   │   ├── schemas/             # Zod output schemas (database, api, roadmap ...)
-│   │   ├── llm-gateway.service.ts   # Provider router + retry logic
+│   │   ├── services/
+│   │   │   ├── llm-router.service.ts      # Tier-based failover orchestrator
+│   │   │   ├── prompt-analyzer.service.ts # Prompt complexity classifier
+│   │   │   └── provider-health.service.ts # Cooldown-based health tracker
+│   │   ├── llm-gateway.service.ts   # Public facade (generateStructured / smartGenerate*)
 │   │   ├── llm.controller.ts
 │   │   └── llm.module.ts
 │   │
@@ -450,8 +482,11 @@ http://localhost:5000/api/v1.0
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/llm/test-structured` | Test structured generation (any provider) |
-| `POST` | `/llm/dberd` | Generate a database schema and ERD |
+| `POST` | `/llm/test-structured` | Structured generation with manual provider selection |
+| `POST` | `/llm/dberd` | Generate a database schema and ERD (smart-routed, COMPLEX tier) |
+| `POST` | `/llm/smart-generate` | Structured generation with automatic provider routing |
+| `POST` | `/llm/smart-generate-text` | Plain-text generation with automatic provider routing |
+| `GET` | `/llm/provider-health` | Real-time provider health snapshot (cooldowns, failure counts) |
 
 ### System
 
@@ -510,7 +545,54 @@ curl -X POST http://localhost:5000/api/v1.0/llm/dberd \
 ```
 </details>
 
-### Test Structured Generation with Custom Provider
+### Smart Auto-Routed Structured Generation
+
+```bash
+curl -X POST http://localhost:5000/api/v1.0/llm/smart-generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "A SaaS platform for managing freelance contracts and invoices."}'
+```
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "success": true,
+  "routing": {
+    "tier": "MODERATE",
+    "provider": "gemini",
+    "model": "gemini-2.5-flash",
+    "label": "Gemini 2.5 Flash",
+    "attempts": 1
+  },
+  "data": { ... }
+}
+```
+</details>
+
+### Provider Health Dashboard
+
+```bash
+curl http://localhost:5000/api/v1.0/llm/provider-health
+```
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "success": true,
+  "snapshot": {
+    "gemini":     { "isHealthy": true, "consecutiveFailures": 0, "cooldownRemainingMs": 0 },
+    "groq":       { "isHealthy": true, "consecutiveFailures": 0, "cooldownRemainingMs": 0 },
+    "openrouter": { "isHealthy": false, "consecutiveFailures": 2, "cooldownRemainingMs": 43200 }
+  }
+}
+```
+</details>
+
+### Manual Provider Selection
 
 ```bash
 curl -X POST http://localhost:5000/api/v1.0/llm/test-structured \
@@ -576,6 +658,10 @@ Each `Project` transitions through this lifecycle. At the `ANALYZING` stage, AI 
 - [x] JWT authentication with Redis blacklist
 - [x] OAuth2 (GitHub, Google)
 - [x] Database schema generation endpoint
+- [x] Intelligent prompt-tier routing (`SIMPLE / MODERATE / COMPLEX`)
+- [x] Provider health tracking with configurable cooldown and automatic recovery
+- [x] Transparent failover across all providers with per-attempt metadata
+- [x] Real-time provider health dashboard endpoint
 - [ ] BullMQ worker implementation for full async project generation
 - [ ] WebSocket events for real-time generation progress
 - [ ] Vector search with pgvector for RAG context injection
